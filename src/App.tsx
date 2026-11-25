@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CategoryFilter } from "./components/CategoryFilter";
 import { ExpenseForm } from "./components/ExpenseForm";
 import { ExpenseList } from "./components/ExpenseList";
 import { ExpenseSummary } from "./components/ExpenseSummary";
 import type { CategoryFilterValue, Expense, NewExpense } from "./types/expense";
+
+const STORAGE_KEY = "expenses";
 
 const sampleExpenses: Expense[] = [
   {
@@ -36,8 +38,25 @@ const sampleExpenses: Expense[] = [
   },
 ];
 
+// 💾 Reads saved expenses. Falls back to the samples if nothing is saved or the data is broken.
+function loadExpenses(): Expense[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? (JSON.parse(saved) as Expense[]) : sampleExpenses;
+  } catch {
+    return sampleExpenses;
+  }
+}
+
 function App() {
-  const [expenses, setExpenses] = useState<Expense[]>(sampleExpenses);
+  // 💾 LOAD once when the app opens
+  const [expenses, setExpenses] = useState<Expense[]>(loadExpenses);
+
+  // 💾 SAVE every time expenses change (add or delete)
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+  }, [expenses]);
+
   const [selectedCategory, setSelectedCategory] =
     useState<CategoryFilterValue>("all");
 
