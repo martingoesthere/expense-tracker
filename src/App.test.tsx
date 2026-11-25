@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
 import App from "./App";
+import { STORAGE_KEY } from "./utils/storage";
 
 async function addExpense(
   user: UserEvent,
@@ -175,5 +176,63 @@ describe("App", () => {
 
     expect(getSummary().getByText("Total spent on food")).toBeInTheDocument();
     expect(getSummary().getByText("$12.50")).toBeInTheDocument();
+  });
+
+  it("remembers expenses after the app is closed and opened again", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<App />);
+
+    await addExpense(user, "Pizza", "20", "2026-11-20");
+    unmount();
+    render(<App />);
+
+    expect(screen.getByText("Pizza")).toBeInTheDocument();
+    expect(screen.getByText("Showing 5 expenses")).toBeInTheDocument();
+  });
+
+  it("does not bring back the samples after deleting everything and reopening", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Delete Groceries" }));
+    await user.click(screen.getByRole("button", { name: "Delete Bus ticket" }));
+    await user.click(
+      screen.getByRole("button", { name: "Delete Movie night" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Delete New shoes" }));
+    unmount();
+    render(<App />);
+
+    expect(
+      screen.getByText("No expenses yet. Add your first one!"),
+    ).toBeInTheDocument();
+  });
+
+  it("starts with the saved expenses when there is saved data", () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify([
+        {
+          id: "x",
+          title: "Saved rent",
+          amount: 500,
+          category: "housing",
+          date: "2026-11-01",
+        },
+      ]),
+    );
+
+    render(<App />);
+
+    expect(screen.getByText("Saved rent")).toBeInTheDocument();
+    expect(screen.getByText("Showing 1 expense")).toBeInTheDocument();
+  });
+
+  it("falls back to the sample expenses when the saved data is broken", () => {
+    localStorage.setItem(STORAGE_KEY, "not json");
+
+    render(<App />);
+
+    expect(screen.getByText("Showing 4 expenses")).toBeInTheDocument();
   });
 });

@@ -4,8 +4,7 @@ import { ExpenseForm } from "./components/ExpenseForm";
 import { ExpenseList } from "./components/ExpenseList";
 import { ExpenseSummary } from "./components/ExpenseSummary";
 import type { CategoryFilterValue, Expense, NewExpense } from "./types/expense";
-
-const STORAGE_KEY = "expenses";
+import { loadExpenses, saveExpenses } from "./utils/storage";
 
 const sampleExpenses: Expense[] = [
   {
@@ -38,27 +37,18 @@ const sampleExpenses: Expense[] = [
   },
 ];
 
-// 💾 Reads saved expenses. Falls back to the samples if nothing is saved or the data is broken.
-function loadExpenses(): Expense[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? (JSON.parse(saved) as Expense[]) : sampleExpenses;
-  } catch {
-    return sampleExpenses;
-  }
-}
-
 function App() {
-  // 💾 LOAD once when the app opens
-  const [expenses, setExpenses] = useState<Expense[]>(loadExpenses);
+  // 💾 LOAD once when the app opens (samples on the very first visit)
+  const [expenses, setExpenses] = useState<Expense[]>(() =>
+    loadExpenses(sampleExpenses),
+  );
+  const [selectedCategory, setSelectedCategory] =
+    useState<CategoryFilterValue>("all");
 
   // 💾 SAVE every time expenses change (add or delete)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+    saveExpenses(expenses);
   }, [expenses]);
-
-  const [selectedCategory, setSelectedCategory] =
-    useState<CategoryFilterValue>("all");
 
   const isShowingAll = selectedCategory === "all";
 
