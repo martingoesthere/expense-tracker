@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ExpenseItem } from "./ExpenseItem";
+import { ExpenseItem, type ExpenseItemProps } from "./ExpenseItem";
 import type { Expense } from "../types/expense";
 
 const sampleExpense: Expense = {
@@ -12,13 +12,24 @@ const sampleExpense: Expense = {
   date: "2026-11-20",
 };
 
-function renderItem(expense: Expense = sampleExpense, onDelete = vi.fn()) {
+function renderItem(overrides: Partial<ExpenseItemProps> = {}) {
+  const props: ExpenseItemProps = {
+    expense: sampleExpense,
+    isEditing: false,
+    onDelete: vi.fn(),
+    onEdit: vi.fn(),
+    onSave: vi.fn(),
+    onCancelEdit: vi.fn(),
+    ...overrides,
+  };
+
   render(
     <ul>
-      <ExpenseItem expense={expense} onDelete={onDelete} />
+      <ExpenseItem {...props} />
     </ul>,
   );
-  return { onDelete };
+
+  return props;
 }
 
 describe("ExpenseItem", () => {
@@ -41,13 +52,13 @@ describe("ExpenseItem", () => {
   });
 
   it("shows a BIG badge for expenses of 50 or more", () => {
-    renderItem({ ...sampleExpense, amount: 75 });
+    renderItem({ expense: { ...sampleExpense, amount: 75 } });
 
     expect(screen.getByText("BIG")).toBeInTheDocument();
   });
 
   it("shows a BIG badge when the amount is exactly 50", () => {
-    renderItem({ ...sampleExpense, amount: 50 });
+    renderItem({ expense: { ...sampleExpense, amount: 50 } });
 
     expect(screen.getByText("BIG")).toBeInTheDocument();
   });
@@ -66,5 +77,49 @@ describe("ExpenseItem", () => {
 
     expect(onDelete).toHaveBeenCalledTimes(1);
     expect(onDelete).toHaveBeenCalledWith("1");
+  });
+
+  it("calls onEdit with the expense id when the edit button is clicked", async () => {
+    const user = userEvent.setup();
+    const { onEdit } = renderItem();
+
+    await user.click(screen.getByRole("button", { name: "Edit Groceries" }));
+
+    expect(onEdit).toHaveBeenCalledWith("1");
+  });
+
+  it("shows a filled-in form instead of the card while editing", () => {
+    renderItem({ isEditing: true });
+
+    expect(
+      screen.getByRole("form", { name: "Edit Groceries" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Title")).toHaveValue("Groceries");
+    expect(
+      screen.queryByRole("button", { name: "Delete Groceries" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("calls onSave with the id and the values when Save is clicked", async () => {
+    const user = userEvent.setup();
+    const { onSave } = renderItem({ isEditing: true });
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledWith("1", {
+      title: "Groceries",
+      amount: 12.5,
+      category: "food",
+      date: "2026-11-20",
+    });
+  });
+
+  it("calls onCancelEdit when Cancel is clicked", async () => {
+    const user = userEvent.setup();
+    const { onCancelEdit } = renderItem({ isEditing: true });
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onCancelEdit).toHaveBeenCalledTimes(1);
   });
 });

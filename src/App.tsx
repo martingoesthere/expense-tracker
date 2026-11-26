@@ -4,8 +4,7 @@ import { ExpenseForm } from "./components/ExpenseForm";
 import { ExpenseList } from "./components/ExpenseList";
 import { ExpenseSummary } from "./components/ExpenseSummary";
 import type { CategoryFilterValue, Expense, NewExpense } from "./types/expense";
-
-const STORAGE_KEY = "expenses";
+import { loadExpenses, saveExpenses } from "./utils/storage";
 
 const sampleExpenses: Expense[] = [
   {
@@ -38,27 +37,19 @@ const sampleExpenses: Expense[] = [
   },
 ];
 
-// 💾 Reads saved expenses. Falls back to the samples if nothing is saved or the data is broken.
-function loadExpenses(): Expense[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? (JSON.parse(saved) as Expense[]) : sampleExpenses;
-  } catch {
-    return sampleExpenses;
-  }
-}
-
 function App() {
-  // 💾 LOAD once when the app opens
-  const [expenses, setExpenses] = useState<Expense[]>(loadExpenses);
-
-  // 💾 SAVE every time expenses change (add or delete)
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
-  }, [expenses]);
-
+  // 💾 LOAD once when the app opens (samples on the very first visit)
+  const [expenses, setExpenses] = useState<Expense[]>(() =>
+    loadExpenses(sampleExpenses),
+  );
   const [selectedCategory, setSelectedCategory] =
     useState<CategoryFilterValue>("all");
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // 💾 SAVE every time expenses change (add, edit or delete)
+  useEffect(() => {
+    saveExpenses(expenses);
+  }, [expenses]);
 
   const isShowingAll = selectedCategory === "all";
 
@@ -83,10 +74,21 @@ function App() {
     setExpenses((previousExpenses) => [expense, ...previousExpenses]);
   }
 
+  function handleSaveExpense(id: string, changes: NewExpense) {
+    console.log(id);
+    setExpenses((previousExpenses) =>
+      previousExpenses.map((expense) =>
+        expense.id === id ? { ...changes, id } : expense,
+      ),
+    );
+    setEditingId(null);
+  }
+
   function handleDeleteExpense(id: string) {
     setExpenses((previousExpenses) =>
       previousExpenses.filter((expense) => expense.id !== id),
     );
+    setEditingId((currentId) => (currentId === id ? null : currentId));
   }
 
   return (
@@ -96,14 +98,20 @@ function App() {
           Expense Tracker
         </h1>
         <ExpenseSummary expenses={visibleExpenses} title={summaryTitle} />
-        <ExpenseForm onAddExpense={handleAddExpense} />
+        <div className="mb-6">
+          <ExpenseForm onSubmit={handleAddExpense} />
+        </div>
         <CategoryFilter
           selected={selectedCategory}
           onChange={setSelectedCategory}
         />
         <ExpenseList
           expenses={visibleExpenses}
+          editingId={editingId}
           onDeleteExpense={handleDeleteExpense}
+          onEditExpense={setEditingId}
+          onSaveExpense={handleSaveExpense}
+          onCancelEdit={() => setEditingId(null)}
           emptyMessage={emptyMessage}
         />
       </div>

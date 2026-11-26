@@ -30,10 +30,20 @@ const sampleExpenses: Expense[] = [
 
 function renderList(
   expenses: Expense[] = sampleExpenses,
-  onDeleteExpense = vi.fn(),
+  editingId: string | null = null,
 ) {
-  render(<ExpenseList expenses={expenses} onDeleteExpense={onDeleteExpense} />);
-  return { onDeleteExpense };
+  const handlers = {
+    onDeleteExpense: vi.fn(),
+    onEditExpense: vi.fn(),
+    onSaveExpense: vi.fn(),
+    onCancelEdit: vi.fn(),
+  };
+
+  render(
+    <ExpenseList expenses={expenses} editingId={editingId} {...handlers} />,
+  );
+
+  return handlers;
 }
 
 describe("ExpenseList", () => {
@@ -64,6 +74,9 @@ describe("ExpenseList", () => {
       <ExpenseList
         expenses={[]}
         onDeleteExpense={vi.fn()}
+        onEditExpense={vi.fn()}
+        onSaveExpense={vi.fn()}
+        onCancelEdit={vi.fn()}
         emptyMessage="Nothing here."
       />,
     );
@@ -99,5 +112,26 @@ describe("ExpenseList", () => {
     await user.click(screen.getByRole("button", { name: "Delete Bus ticket" }));
 
     expect(onDeleteExpense).toHaveBeenCalledWith("2");
+  });
+
+  it("calls onEditExpense with the right id when Edit is clicked", async () => {
+    const user = userEvent.setup();
+    const { onEditExpense } = renderList();
+
+    await user.click(screen.getByRole("button", { name: "Edit Bus ticket" }));
+
+    expect(onEditExpense).toHaveBeenCalledWith("2");
+  });
+
+  it("shows the edit form only for the expense being edited", () => {
+    renderList(sampleExpenses, "2");
+
+    expect(
+      screen.getByRole("form", { name: "Edit Bus ticket" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("form", { name: "Edit Groceries" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Groceries")).toBeInTheDocument();
   });
 });
