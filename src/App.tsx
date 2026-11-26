@@ -75,7 +75,6 @@ function App() {
   }
 
   function handleSaveExpense(id: string, changes: NewExpense) {
-    console.log(id);
     setExpenses((previousExpenses) =>
       previousExpenses.map((expense) =>
         expense.id === id ? { ...changes, id } : expense,
