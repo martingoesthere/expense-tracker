@@ -1,18 +1,33 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { CATEGORIES, type Category, type NewExpense } from "../types/expense";
 
 interface ExpenseFormProps {
-  onAddExpense: (expense: NewExpense) => void;
+  onSubmit: (expense: NewExpense) => void;
+  initialValues?: NewExpense;
+  heading?: string;
+  submitLabel?: string;
+  onCancel?: () => void;
 }
 
 const inputClass =
   "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:border-indigo-500 focus:outline-none";
 
-export function ExpenseForm({ onAddExpense }: ExpenseFormProps) {
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState<Category>("food");
-  const [date, setDate] = useState("");
+export function ExpenseForm({
+  onSubmit,
+  initialValues,
+  heading = "Add an expense",
+  submitLabel = "Add expense",
+  onCancel,
+}: ExpenseFormProps) {
+  const id = useId();
+  const isEditMode = initialValues !== undefined;
+
+  const [title, setTitle] = useState(initialValues?.title ?? "");
+  const [amount, setAmount] = useState(initialValues?.amount.toString() ?? "");
+  const [category, setCategory] = useState<Category>(
+    initialValues?.category ?? "food",
+  );
+  const [date, setDate] = useState(initialValues?.date ?? "");
   const [error, setError] = useState<string | null>(null);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -36,37 +51,43 @@ export function ExpenseForm({ onAddExpense }: ExpenseFormProps) {
       return;
     }
 
-    onAddExpense({
+    onSubmit({
       title: trimmedTitle,
       amount: parsedAmount,
       category,
       date,
     });
 
-    setTitle("");
-    setAmount("");
-    setCategory("food");
-    setDate("");
     setError(null);
+
+    if (!isEditMode) {
+      setTitle("");
+      setAmount("");
+      setCategory("food");
+      setDate("");
+    }
   }
 
   return (
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="mb-6 space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+      aria-labelledby={`${id}-heading`}
+      className="space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
     >
-      <h2 className="text-lg font-semibold text-slate-800">Add an expense</h2>
+      <h2 id={`${id}-heading`} className="text-lg font-semibold text-slate-800">
+        {heading}
+      </h2>
 
       <div>
         <label
-          htmlFor="expense-title"
+          htmlFor={`${id}-title`}
           className="mb-1 block text-sm font-medium text-slate-700"
         >
           Title
         </label>
         <input
-          id="expense-title"
+          id={`${id}-title`}
           type="text"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
@@ -77,13 +98,13 @@ export function ExpenseForm({ onAddExpense }: ExpenseFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label
-            htmlFor="expense-amount"
+            htmlFor={`${id}-amount`}
             className="mb-1 block text-sm font-medium text-slate-700"
           >
             Amount
           </label>
           <input
-            id="expense-amount"
+            id={`${id}-amount`}
             type="number"
             step="0.01"
             value={amount}
@@ -94,13 +115,13 @@ export function ExpenseForm({ onAddExpense }: ExpenseFormProps) {
 
         <div>
           <label
-            htmlFor="expense-category"
+            htmlFor={`${id}-category`}
             className="mb-1 block text-sm font-medium text-slate-700"
           >
             Category
           </label>
           <select
-            id="expense-category"
+            id={`${id}-category`}
             value={category}
             onChange={(event) => setCategory(event.target.value as Category)}
             className={`${inputClass} capitalize`}
@@ -116,13 +137,13 @@ export function ExpenseForm({ onAddExpense }: ExpenseFormProps) {
 
       <div>
         <label
-          htmlFor="expense-date"
+          htmlFor={`${id}-date`}
           className="mb-1 block text-sm font-medium text-slate-700"
         >
           Date
         </label>
         <input
-          id="expense-date"
+          id={`${id}-date`}
           type="date"
           value={date}
           onChange={(event) => setDate(event.target.value)}
@@ -136,12 +157,23 @@ export function ExpenseForm({ onAddExpense }: ExpenseFormProps) {
         </p>
       )}
 
-      <button
-        type="submit"
-        className="w-full rounded-md bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700"
-      >
-        Add expense
-      </button>
+      <div className="flex gap-3">
+        <button
+          type="submit"
+          className="flex-1 rounded-md bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700"
+        >
+          {submitLabel}
+        </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 rounded-md border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-100"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   );
 }

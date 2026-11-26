@@ -20,6 +20,10 @@ function getSummary() {
   return within(screen.getByRole("region", { name: "Summary" }));
 }
 
+function getEditForm(title: string) {
+  return within(screen.getByRole("form", { name: `Edit ${title}` }));
+}
+
 describe("App", () => {
   it("shows the starting expenses", () => {
     render(<App />);
@@ -178,6 +182,8 @@ describe("App", () => {
     expect(getSummary().getByText("$12.50")).toBeInTheDocument();
   });
 
+  // 💾 ET-101: saving in localStorage
+
   it("remembers expenses after the app is closed and opened again", async () => {
     const user = userEvent.setup();
     const { unmount } = render(<App />);
@@ -234,5 +240,88 @@ describe("App", () => {
     render(<App />);
 
     expect(screen.getByText("Showing 4 expenses")).toBeInTheDocument();
+  });
+
+  // ✏️ ET-102: editing an expense
+
+  it("edits an expense in place and updates the total", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Edit Groceries" }));
+    const form = getEditForm("Groceries");
+    await user.clear(form.getByLabelText("Title"));
+    await user.type(form.getByLabelText("Title"), "Supermarket");
+    await user.clear(form.getByLabelText("Amount"));
+    await user.type(form.getByLabelText("Amount"), "20");
+    await user.click(form.getByRole("button", { name: "Save" }));
+
+    expect(screen.queryByText("Groceries")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")[0]).toHaveTextContent("Supermarket");
+    expect(screen.getByText("Showing 4 expenses")).toBeInTheDocument();
+    expect(getSummary().getByText("$117.75")).toBeInTheDocument();
+  });
+
+  it("keeps the original values when editing is cancelled", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Edit Groceries" }));
+    const form = getEditForm("Groceries");
+    await user.clear(form.getByLabelText("Title"));
+    await user.type(form.getByLabelText("Title"), "Something else");
+    await user.click(form.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.getByText("Groceries")).toBeInTheDocument();
+    expect(screen.queryByText("Something else")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("form", { name: "Edit Groceries" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows an error and stays in edit mode when the edit is invalid", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Edit Groceries" }));
+    const form = getEditForm("Groceries");
+    await user.clear(form.getByLabelText("Title"));
+    await user.click(form.getByRole("button", { name: "Save" }));
+
+    expect(form.getByRole("alert")).toHaveTextContent("Please enter a title.");
+    expect(
+      screen.getByRole("form", { name: "Edit Groceries" }),
+    ).toBeInTheDocument();
+  });
+
+  it("only lets one expense be edited at a time", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Edit Groceries" }));
+    await user.click(screen.getByRole("button", { name: "Edit Bus ticket" }));
+
+    expect(
+      screen.queryByRole("form", { name: "Edit Groceries" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("form", { name: "Edit Bus ticket" }),
+    ).toBeInTheDocument();
+  });
+
+  it("remembers an edit after the app is closed and opened again", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Edit Groceries" }));
+    const form = getEditForm("Groceries");
+    await user.clear(form.getByLabelText("Title"));
+    await user.type(form.getByLabelText("Title"), "Supermarket");
+    await user.click(form.getByRole("button", { name: "Save" }));
+    unmount();
+    render(<App />);
+
+    expect(screen.getByText("Supermarket")).toBeInTheDocument();
+    expect(screen.queryByText("Groceries")).not.toBeInTheDocument();
   });
 });

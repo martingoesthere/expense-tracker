@@ -1,15 +1,23 @@
-import type { Expense } from "../types/expense";
+import type { Expense, NewExpense } from "../types/expense";
 import { ExpenseItem } from "./ExpenseItem";
 
 interface ExpenseListProps {
   expenses: Expense[];
+  editingId?: string | null;
   onDeleteExpense: (id: string) => void;
+  onEditExpense: (id: string) => void;
+  onSaveExpense: (id: string, changes: NewExpense) => void;
+  onCancelEdit: () => void;
   emptyMessage?: string;
 }
 
 export function ExpenseList({
   expenses,
+  editingId = null,
   onDeleteExpense,
+  onEditExpense,
+  onSaveExpense,
+  onCancelEdit,
   emptyMessage = "No expenses yet. Add your first one!",
 }: ExpenseListProps) {
   if (expenses.length === 0) {
@@ -32,7 +40,11 @@ export function ExpenseList({
           <ExpenseItem
             key={expense.id}
             expense={expense}
+            isEditing={expense.id === editingId}
             onDelete={onDeleteExpense}
+            onEdit={onEditExpense}
+            onSave={onSaveExpense}
+            onCancelEdit={onCancelEdit}
           />
         ))}
       </ul>

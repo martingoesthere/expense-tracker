@@ -44,8 +44,9 @@ function App() {
   );
   const [selectedCategory, setSelectedCategory] =
     useState<CategoryFilterValue>("all");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  // 💾 SAVE every time expenses change (add or delete)
+  // 💾 SAVE every time expenses change (add, edit or delete)
   useEffect(() => {
     saveExpenses(expenses);
   }, [expenses]);
@@ -73,10 +74,20 @@ function App() {
     setExpenses((previousExpenses) => [expense, ...previousExpenses]);
   }
 
+  function handleSaveExpense(id: string, changes: NewExpense) {
+    setExpenses((previousExpenses) =>
+      previousExpenses.map((expense) =>
+        expense.id === id ? { ...changes, id } : expense,
+      ),
+    );
+    setEditingId(null);
+  }
+
   function handleDeleteExpense(id: string) {
     setExpenses((previousExpenses) =>
       previousExpenses.filter((expense) => expense.id !== id),
     );
+    setEditingId((currentId) => (currentId === id ? null : currentId));
   }
 
   return (
@@ -86,14 +97,20 @@ function App() {
           Expense Tracker
         </h1>
         <ExpenseSummary expenses={visibleExpenses} title={summaryTitle} />
-        <ExpenseForm onAddExpense={handleAddExpense} />
+        <div className="mb-6">
+          <ExpenseForm onSubmit={handleAddExpense} />
+        </div>
         <CategoryFilter
           selected={selectedCategory}
           onChange={setSelectedCategory}
         />
         <ExpenseList
           expenses={visibleExpenses}
+          editingId={editingId}
           onDeleteExpense={handleDeleteExpense}
+          onEditExpense={setEditingId}
+          onSaveExpense={handleSaveExpense}
+          onCancelEdit={() => setEditingId(null)}
           emptyMessage={emptyMessage}
         />
       </div>

@@ -1,14 +1,45 @@
-import type { Expense } from "../types/expense";
+import type { Expense, NewExpense } from "../types/expense";
 import { formatCurrency } from "../utils/formatCurrency";
+import { ExpenseForm } from "./ExpenseForm";
 
 const BIG_EXPENSE_LIMIT = 50;
 
-interface ExpenseItemProps {
+export interface ExpenseItemProps {
   expense: Expense;
+  isEditing?: boolean;
   onDelete: (id: string) => void;
+  onEdit: (id: string) => void;
+  onSave: (id: string, changes: NewExpense) => void;
+  onCancelEdit: () => void;
 }
 
-export function ExpenseItem({ expense, onDelete }: ExpenseItemProps) {
+export function ExpenseItem({
+  expense,
+  isEditing = false,
+  onDelete,
+  onEdit,
+  onSave,
+  onCancelEdit,
+}: ExpenseItemProps) {
+  if (isEditing) {
+    return (
+      <li>
+        <ExpenseForm
+          heading={`Edit ${expense.title}`}
+          submitLabel="Save"
+          initialValues={{
+            title: expense.title,
+            amount: expense.amount,
+            category: expense.category,
+            date: expense.date,
+          }}
+          onSubmit={(changes) => onSave(expense.id, changes)}
+          onCancel={onCancelEdit}
+        />
+      </li>
+    );
+  }
+
   const isBig = expense.amount >= BIG_EXPENSE_LIMIT;
 
   return (
@@ -26,10 +57,18 @@ export function ExpenseItem({ expense, onDelete }: ExpenseItemProps) {
           {expense.category} · {expense.date}
         </p>
       </div>
-      <div className="flex items-center gap-3">
-        <span className="font-mono text-lg font-bold text-rose-600">
+      <div className="flex items-center gap-1">
+        <span className="mr-2 font-mono text-lg font-bold text-rose-600">
           {formatCurrency(expense.amount)}
         </span>
+        <button
+          type="button"
+          onClick={() => onEdit(expense.id)}
+          aria-label={`Edit ${expense.title}`}
+          className="rounded-md px-2 py-1 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600"
+        >
+          ✏️
+        </button>
         <button
           type="button"
           onClick={() => onDelete(expense.id)}
