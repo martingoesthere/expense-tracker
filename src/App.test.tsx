@@ -324,4 +324,91 @@ describe("App", () => {
     expect(screen.getByText("Supermarket")).toBeInTheDocument();
     expect(screen.queryByText("Groceries")).not.toBeInTheDocument();
   });
+
+  // ↕️ ET-103: sorting
+
+  it("sorts by newest date by default", () => {
+    render(<App />);
+
+    const items = screen.getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("Groceries");
+    expect(items[3]).toHaveTextContent("New shoes");
+  });
+
+  it("sorts by oldest date", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.selectOptions(screen.getByLabelText("Sort by"), "Oldest date");
+
+    const items = screen.getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("New shoes");
+    expect(items[3]).toHaveTextContent("Groceries");
+  });
+
+  it("sorts by highest amount", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.selectOptions(
+      screen.getByLabelText("Sort by"),
+      "Highest amount",
+    );
+
+    const items = screen.getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("New shoes");
+    expect(items[3]).toHaveTextContent("Bus ticket");
+  });
+
+  it("sorts by lowest amount", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.selectOptions(screen.getByLabelText("Sort by"), "Lowest amount");
+
+    const items = screen.getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("Bus ticket");
+    expect(items[3]).toHaveTextContent("New shoes");
+  });
+
+  it("sorts and filters at the same time", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await addExpense(user, "Big dinner", "40", "2026-11-01");
+    await user.click(screen.getByRole("button", { name: "food" }));
+    await user.selectOptions(
+      screen.getByLabelText("Sort by"),
+      "Highest amount",
+    );
+
+    let items = screen.getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent("Big dinner");
+
+    await user.selectOptions(screen.getByLabelText("Sort by"), "Lowest amount");
+
+    items = screen.getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("Groceries");
+  });
+
+  it("does not change the saved order when sorting", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.selectOptions(
+      screen.getByLabelText("Sort by"),
+      "Highest amount",
+    );
+
+    const saved: unknown = JSON.parse(
+      localStorage.getItem(STORAGE_KEY) ?? "[]",
+    );
+    expect(saved).toEqual(
+      expect.arrayContaining([expect.objectContaining({ title: "Groceries" })]),
+    );
+    expect(Array.isArray(saved) && saved[0]).toMatchObject({
+      title: "Groceries",
+    });
+  });
 });
