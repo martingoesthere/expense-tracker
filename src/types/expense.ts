@@ -8,6 +8,19 @@ export const CATEGORIES: Category[] = [
   "other",
 ];
 
+export type sorting_category =
+  | "Newest date"
+  | "Oldest date"
+  | "Highest amount"
+  | "Lowest amount";
+
+export const SORTING_CATEGORIES: sorting_category[] = [
+  "Newest date",
+  "Oldest date",
+  "Highest amount",
+  "Lowest amount",
+];
+
 export type CategoryFilterValue = Category | "all";
 
 export interface Expense {
