@@ -1,35 +1,41 @@
-import { SORTING_CATEGORIES, type sorting_category } from "../types/expense";
+import { useId, type ChangeEvent } from "react";
+import { SORT_OPTIONS, type SortOption } from "../types/expense";
 
 interface ExpenseSortingProps {
-  id?: string;
-  sortBy: sorting_category;
-  setSortBy: (value: sorting_category) => void;
-  inputClass?: string;
+  value: SortOption;
+  onChange: (value: SortOption) => void;
 }
 
-export function ExpenseSorting({
-  id = "expense",
-  sortBy,
-  setSortBy,
-  inputClass = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
-}: ExpenseSortingProps) {
+export function ExpenseSorting({ value, onChange }: ExpenseSortingProps) {
+  const id = useId();
+
+  function handleChange(event: ChangeEvent<HTMLSelectElement>) {
+    const chosen = SORT_OPTIONS.find(
+      (option) => option.value === event.target.value,
+    );
+
+    if (chosen) {
+      onChange(chosen.value);
+    }
+  }
+
   return (
     <div>
       <label
-        htmlFor={`${id}-sort`}
+        htmlFor={id}
         className="mb-1 block text-sm font-medium text-slate-700"
       >
         Sort by
       </label>
       <select
-        id={`${id}-sort`}
-        value={sortBy}
-        onChange={(event) => setSortBy(event.target.value as sorting_category)}
-        className={`${inputClass} capitalize`}
+        id={id}
+        value={value}
+        onChange={handleChange}
+        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
       >
-        {SORTING_CATEGORIES.map((option) => (
-          <option key={option} value={option}>
-            {option}
+        {SORT_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>

@@ -8,17 +8,13 @@ export const CATEGORIES: Category[] = [
   "other",
 ];
 
-export type sorting_category =
-  | "Newest date"
-  | "Oldest date"
-  | "Highest amount"
-  | "Lowest amount";
+export type SortOption = "newest" | "oldest" | "highest" | "lowest";
 
-export const SORTING_CATEGORIES: sorting_category[] = [
-  "Newest date",
-  "Oldest date",
-  "Highest amount",
-  "Lowest amount",
+export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "newest", label: "Newest date" },
+  { value: "oldest", label: "Oldest date" },
+  { value: "highest", label: "Highest amount" },
+  { value: "lowest", label: "Lowest amount" },
 ];
 
 export type CategoryFilterValue = Category | "all";
