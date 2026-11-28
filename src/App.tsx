@@ -3,7 +3,13 @@ import { CategoryFilter } from "./components/CategoryFilter";
 import { ExpenseForm } from "./components/ExpenseForm";
 import { ExpenseList } from "./components/ExpenseList";
 import { ExpenseSummary } from "./components/ExpenseSummary";
-import type { CategoryFilterValue, Expense, NewExpense } from "./types/expense";
+import { ExpenseSorting } from "./components/ExpenseSorting";
+import type {
+  CategoryFilterValue,
+  Expense,
+  NewExpense,
+  sorting_category,
+} from "./types/expense";
 import { loadExpenses, saveExpenses } from "./utils/storage";
 
 const sampleExpenses: Expense[] = [
@@ -38,10 +44,13 @@ const sampleExpenses: Expense[] = [
 ];
 
 function App() {
+  const [sortBy, setSortBy] = useState<sorting_category>("Newest date");
+
   // 💾 LOAD once when the app opens (samples on the very first visit)
   const [expenses, setExpenses] = useState<Expense[]>(() =>
     loadExpenses(sampleExpenses),
   );
+
   const [selectedCategory, setSelectedCategory] =
     useState<CategoryFilterValue>("all");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -53,9 +62,26 @@ function App() {
 
   const isShowingAll = selectedCategory === "all";
 
+  // 1. Filter first
   const visibleExpenses = isShowingAll
     ? expenses
     : expenses.filter((expense) => expense.category === selectedCategory);
+
+  // 2. Sort the filtered results
+  const sortedExpenses = [...visibleExpenses].sort((a, b) => {
+    switch (sortBy) {
+      case "Newest date":
+        return b.date.localeCompare(a.date); // Descending
+      case "Oldest date":
+        return a.date.localeCompare(b.date); // Ascending
+      case "Highest amount":
+        return b.amount - a.amount; // Descending
+      case "Lowest amount":
+        return a.amount - b.amount; // Ascending
+      default:
+        return 0;
+    }
+  });
 
   const emptyMessage = isShowingAll
     ? "No expenses yet. Add your first one!"
@@ -96,16 +122,34 @@ function App() {
         <h1 className="mb-6 text-3xl font-bold text-slate-900">
           Expense Tracker
         </h1>
+
+        {/* Summary uses visibleExpenses since the total sum doesn't care about order */}
         <ExpenseSummary expenses={visibleExpenses} title={summaryTitle} />
+
         <div className="mb-6">
           <ExpenseForm onSubmit={handleAddExpense} />
         </div>
-        <CategoryFilter
-          selected={selectedCategory}
-          onChange={setSelectedCategory}
-        />
+
+        {/* Category filter stacked on top */}
+        <div className="mb-4">
+          <CategoryFilter
+            selected={selectedCategory}
+            onChange={setSelectedCategory}
+          />
+        </div>
+
+        {/* Sort by dropdown stacked below */}
+        <div className="mb-6">
+          <ExpenseSorting
+            id="expense-filter"
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+          />
+        </div>
+
+        {/* 3. Pass the SORTED expenses to the list */}
         <ExpenseList
-          expenses={visibleExpenses}
+          expenses={sortedExpenses}
           editingId={editingId}
           onDeleteExpense={handleDeleteExpense}
           onEditExpense={setEditingId}
